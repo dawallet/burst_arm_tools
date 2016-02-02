@@ -168,6 +168,24 @@ bool Burst::MinerConfig::readConfigFile(const std::string configPath)
             this->maxBufferSizeMB = 1;
         }
     }
+
+	if (configDoc.HasMember("submissionMaxDeadline"))
+	{
+		if (configDoc["submissionMaxDeadline"].IsNumber())
+		{
+			this->submissionMaxDeadline = configDoc["submissionMaxDeadline"].GetInt();
+		}
+		else
+		{
+			std::string submissionMaxDeadlineStr = configDoc["submissionMaxDeadline"].GetString();
+			try {
+				this->submissionMaxDeadline = std::stoul(submissionMaxDeadlineStr);
+			}
+			catch (...) {
+				this->submissionMaxDeadline = 0;
+			}
+		}
+	}
     
     return true;
 }

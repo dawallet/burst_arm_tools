@@ -32,6 +32,7 @@ namespace Burst
         
         size_t submissionMaxDelay = 60;
         size_t submissionMaxRetry = 5;
+		size_t submissionMaxDeadline = 0;
         std::string poolHost = "burst-pool.cryptoport.io";
         size_t poolPort = 80;
         size_t socketTimeout = 30;

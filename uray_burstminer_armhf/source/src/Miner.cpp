@@ -109,6 +109,13 @@ void Burst::Miner::nonceSubmitterThread()
 				{
 					firstSubmit = deadline < this->bestDeadlineConfirmed[accountId];
 				}
+				if (firstSubmit)
+				{
+					if (this->getConfig()->submissionMaxDeadline > 0)
+					{
+						firstSubmit = deadline < this->getConfig()->submissionMaxDeadline;
+					}
+				}
                 if( firstSubmit )
                 {
 					bool exist = false;
