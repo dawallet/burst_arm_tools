@@ -33,10 +33,10 @@
 #include "helper.h"
 
 // Do not report results with deadline above this to the node. If you mine solo set this to 10000 to avoid stressing out the node.
-#define MAXDEADLINE	3888000
+#define MAXDEADLINE	5000000
 
 // Change if you need
-#define DEFAULT_PORT	8124
+#define DEFAULT_PORT	8125
 
 // These are fixed for BURST. Dont change!
 #define HASH_SIZE	32
@@ -107,7 +107,7 @@ char *contactWallet(char *req, int bytes) {
 	setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
 
 	if(connect(s, (struct sockaddr*)&ss, sizeof(struct sockaddr_in)) == -1) {
-		printf("\n Sending result to node                           \n");
+		printf("\nError sending result to node                           \n");
 		fflush(stdout);
 		return NULL;
 	}
@@ -116,7 +116,7 @@ char *contactWallet(char *req, int bytes) {
 	do {
 		int w = write(s, &req[written], bytes - written);
 		if(w < 1) {
-			printf("\n Sending request to node                     \n");
+			printf("\nError sending request to node                     \n");
 			return NULL;
 		}
 		written += w;
@@ -207,7 +207,9 @@ void procscoop(unsigned long long nonce, int n, char *data, unsigned long long a
 							if(ndeadline < deadline || deadline == 0)
 								deadline = ndeadline;
 						}
-					} 
+					} else {
+						printf("\nWalet reported no deadline.\n");
+					}
 #ifdef SOLO
 					// Deadline too high? Passphrase may be wrong.
 					if(deadline > MAXDEADLINE) {
@@ -263,7 +265,7 @@ void *work_i(void *x_void_ptr) {
 				int fh = open(fullname, O_RDONLY);
 
 				if(fh < 0) {
-                                    
+                                        printf("\nError opening file %s                             \n", fullname);
                                         fflush(stdout);
 				}
 
@@ -398,7 +400,7 @@ int pollNode() {
 void update() {
 	// Try until we get a result.
 	while(pollNode() == 0) {
-		
+		printf("\nCould not get mining info from Node. Will retry..             \n");
 		fflush(stdout);
 		struct timespec wait;
 		wait.tv_sec = 1;
@@ -418,7 +420,7 @@ int main(int argc, char **argv) {
 	// Reading passphrase from file
 	int pf = open( "passphrases.txt", O_RDONLY );
 	if( pf < 0 ) {
-		printf("For solo mining: could not find file passphrases.txt\nThis file should contain the passphrase used to create the plotfiles\n");
+		printf("Could not find file passphrases.txt\nThis file should contain the passphrase used to create the plotfiles\n");
 		exit(-1);
 	}
 	
@@ -551,7 +553,7 @@ int main(int argc, char **argv) {
 			printf("\r%llu MB read/%llu GB total/%i shares@target %llu                 ", (bytesRead / ( 1024 * 1024 )), (bytesRead / (256 * 1024)), sharefill, targetdeadline);
 #else
 			if(deadline == 0)	
-				printf("\r%llu MB read/%llu GB total/no low enough deadline yet               ", (bytesRead / ( 1024 * 1024 )), (bytesRead / (256 * 1024)));
+				printf("\r%llu MB read/%llu GB total/no deadline                 ", (bytesRead / ( 1024 * 1024 )), (bytesRead / (256 * 1024)));
 			else 
 				printf("\r%llu MB read/%llu GB total/deadline %llus (%llis left)           ", (bytesRead / ( 1024 * 1024 )), (bytesRead / (256 * 1024)), deadline, (long long)deadline + (unsigned int)starttime - (unsigned int)ttime);
 #endif
