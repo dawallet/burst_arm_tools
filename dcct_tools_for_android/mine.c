@@ -551,9 +551,9 @@ int main(int argc, char **argv) {
 			printf("\r%llu MB read/%llu GB total/%i shares@target %llu                 ", (bytesRead / ( 1024 * 1024 )), (bytesRead / (256 * 1024)), sharefill, targetdeadline);
 #else
 			if(deadline == 0)	
-				printf("\r%llu MB read/%llu GB total/no low enough deadline yet                ", (bytesRead / ( 1024 * 1024 )), (bytesRead / (256 * 1024)));
+				printf("\r%llu MB read/%llu GB total/no low enough deadline yet", (bytesRead / ( 1024 * 1024 )), (bytesRead / (256 * 1024)));
 			else 
-				printf("\r%llu MB read/%llu GB total/deadline %llus (%llis left)           ", (bytesRead / ( 1024 * 1024 )), (bytesRead / (256 * 1024)), deadline, (long long)deadline + (unsigned int)starttime - (unsigned int)ttime);
+				printf("\r%llu MB read/%llu GB total/deadline %llus (%llis left)", (bytesRead / ( 1024 * 1024 )), (bytesRead / (256 * 1024)), deadline, (long long)deadline + (unsigned int)starttime - (unsigned int)ttime);
 #endif
 
 			fflush(stdout);
@@ -569,7 +569,7 @@ int main(int argc, char **argv) {
 			nanosleep(&wait, NULL);
 		} while(memcmp(signature, oldSignature, 32) == 0);	// Wait until signature changed
 
-		printf("\nNew block %llu, basetarget %llu                          \n", height, baseTarget);
+		printf("\nNew block %llu, basetarget %llu \n", height, baseTarget);
 		fflush(stdout);
 
 		// Remember starttime
