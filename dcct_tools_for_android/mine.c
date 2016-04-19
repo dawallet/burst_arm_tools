@@ -45,7 +45,7 @@
 
 // Read this many nonces at once. 100k = 6.4MB per directory/thread.
 // More may speedup things a little.
-#define CACHESIZE	100000
+#define CACHESIZE	5000
 
 #define BUFFERSIZE	2000
 
