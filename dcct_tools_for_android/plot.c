@@ -155,9 +155,7 @@ void *work_i(void *x_void_ptr) {
 
 	unsigned int n;
         for(n=0; n<noncesperthread; n++) {
-            if(selecttype == 1) {
-
-            } else {
+            if(selecttype == 0)  {
                 nonce(addr, i + n);
             }
         }
