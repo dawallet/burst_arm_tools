@@ -3,7 +3,7 @@ CFLAGS=-D_FILE_OFFSET_BITS=64
 all:		plot32
 
 plot32:	plot.c shabal32.o helper32.o
-		gcc -Wall -O2 -o plot32 plot.c shabal32.o helper32.o
+		gcc -Wall -O2 -o plot32 plot.c shabal32.o helper32.o -march=native -std=gnu99
 
 helper32.o:	helper.c
 		gcc -Wall -c -O2 -o helper32.o helper.c	
