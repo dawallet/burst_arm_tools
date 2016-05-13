@@ -69,83 +69,7 @@ char *outputdir = DEFAULTDIR;
   gendata[PLOT_SIZE + 12] = xv[3]; gendata[PLOT_SIZE + 13] = xv[2]; gendata[PLOT_SIZE + 14] = xv[1]; gendata[PLOT_SIZE + 15] = xv[0]
 
 
-int mnonce(unsigned long long int addr, unsigned long long int nonce) {
-    char final1[32], final2[32], final3[32], final4[32];
-//    char gendata1[16 + PLOT_SIZE], gendata2[16 + PLOT_SIZE], gendata3[16 + PLOT_SIZE], gendata4[16 + PLOT_SIZE];
-    char finalPosition1[32], finalPosition2[32], finalPosition3[32], finalPosition4[32];
-    char *gendata1 = (char*)malloc(16 + PLOT_SIZE); char *gendata2 = (char*)malloc(16 + PLOT_SIZE); char *gendata3 = (char*)malloc(16 + PLOT_SIZE); char *gendata4 = (char*)malloc(16 + PLOT_SIZE);
 
-    char *xv = (char*)&addr;
-
-    gendata1[PLOT_SIZE] = xv[7]; gendata1[PLOT_SIZE + 1] = xv[6]; gendata1[PLOT_SIZE + 2] = xv[5]; gendata1[PLOT_SIZE + 3] = xv[4];
-    gendata1[PLOT_SIZE + 4] = xv[3]; gendata1[PLOT_SIZE + 5] = xv[2]; gendata1[PLOT_SIZE + 6] = xv[1]; gendata1[PLOT_SIZE + 7] = xv[0];
-
-    for (int i = PLOT_SIZE; i <= PLOT_SIZE + 7; ++i)
-    {
-      gendata2[i] = gendata1[i];
-      gendata3[i] = gendata1[i];
-      gendata4[i] = gendata1[i];
-    }
-
-    unsigned long long int nonce2 = nonce + 1;
-    unsigned long long int nonce3 = nonce + 2;
-    unsigned long long int nonce4 = nonce + 3;
-
-    SET_NONCE(gendata1, nonce);
-    SET_NONCE(gendata2, nonce2);
-    SET_NONCE(gendata3, nonce3);
-    SET_NONCE(gendata4, nonce4);
-
-    mshabal_context x;
-  
-
-    // XOR with final
-    unsigned long long *start1 = (unsigned long long*)gendata1;
-    unsigned long long *start2 = (unsigned long long*)gendata2;
-    unsigned long long *start3 = (unsigned long long*)gendata3;
-    unsigned long long *start4 = (unsigned long long*)gendata4;
-    unsigned long long *fint1 = (unsigned long long*)&final1;
-    unsigned long long *fint2 = (unsigned long long*)&final2;
-    unsigned long long *fint3 = (unsigned long long*)&final3;
-    unsigned long long *fint4 = (unsigned long long*)&final4;
-
-
-    // Start XOR from scoop 0 on, in 32 Byte steps:
-    for(i = 0; i < PLOT_SIZE; i += 32) {
-         *start1 ^= fint1[0]; *start2 ^= fint2[0]; *start3 ^= fint3[0]; *start4 ^= fint4[0]; 
-         start1++; start2++; start3++; start4++;
-         *start1 ^= fint1[1]; *start2 ^= fint2[1]; *start3 ^= fint3[1]; *start4 ^= fint4[1]; 
-         start1++; start2++; start3++; start4++;
-         *start1 ^= fint1[2]; *start2 ^= fint2[2]; *start3 ^= fint3[2]; *start4 ^= fint4[2]; 
-         start1++; start2++; start3++; start4++;
-         *start1 ^= fint1[3]; *start2 ^= fint2[3]; *start3 ^= fint3[3]; *start4 ^= fint4[3]; 
-         start1++; start2++; start3++; start4++;
-
-	 // Get position of scoops to mix in:
-	 int position1, position2, position3, position4;
-	 if(i == 0) {
-	 	position1 = position2 = position3 = position4 = 0;
-	 }
-
-    }
-
-    // Get offset inside block:
-	unsigned long long noncePosition1 = nonce       % staggersize;
-	unsigned long long noncePosition2 = (nonce + 1) % staggersize;
-	unsigned long long noncePosition3 = (nonce + 2) % staggersize;
-	unsigned long long noncePosition4 = (nonce + 3) % staggersize;
-
-	// Sort them using new distribution scheme:
-        for(i = 0; i < SCOOPS; i++) {
-                memcpy( &cache[((i + SCOOPS - noncePosition1) % SCOOPS) * staggersize * 16 + (noncePosition1) * 16], &gendata1[i * 16], 16);
-                memcpy( &cache[((i + SCOOPS - noncePosition2) % SCOOPS) * staggersize * 16 + (noncePosition2) * 16], &gendata2[i * 16], 16);
-                memcpy( &cache[((i + SCOOPS - noncePosition3) % SCOOPS) * staggersize * 16 + (noncePosition3) * 16], &gendata3[i * 16], 16);
-                memcpy( &cache[((i + SCOOPS - noncePosition4) % SCOOPS) * staggersize * 16 + (noncePosition4) * 16], &gendata4[i * 16], 16);
-	}
-	free(gendata4); free(gendata3); free(gendata2); free(gendata1);
-
-        return 0;
-}
 
 void nonce(unsigned long long int addr, unsigned long long int nonce) {
 	char final[32];
@@ -238,16 +162,7 @@ void *work_i(void *x_void_ptr) {
                     n += 3;
                 } else
                    nonce(addr,i + n);
-#ifdef AVX2
-            } else if(selecttype == 2) {
-                if (n + 8 < noncesperthread)
-                {
-                    m256nonce(addr, i + n);
 
-                    n += 7;
-                } else
-                    nonce(addr, i + n);
-#endif
             } else {
                 nonce(addr, i + n);
             }
