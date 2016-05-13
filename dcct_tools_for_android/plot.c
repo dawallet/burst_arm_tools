@@ -154,11 +154,8 @@ void *work_i(void *x_void_ptr) {
 	unsigned long long i = *x_ptr;
 
 	unsigned int n;
-        for(n=0; n<noncesperthread; n++) {
-            if(selecttype == 0)  {
-                nonce(addr, i + n);
-            }
-        }
+        for(n=0; n<noncesperthread; n++)
+                nonce(addr,(i + n), (unsigned long long)(i - startnonce + n));
 
 	return NULL;
 }
