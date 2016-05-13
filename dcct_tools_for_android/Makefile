@@ -13,12 +13,6 @@ helper32.o:	helper.c
 
 shabal32.o:	shabal32.s
 		gcc -Wall -c -o shabal32.o shabal32.s
-
-mshabal_sse4.o: mshabal_sse4.c
-		gcc -Wall -m64 -c -O2 -march=native -o mshabal_sse4.o mshabal_sse4.c
-
-mshabal256_avx2.o: mshabal256_avx2.c
-		gcc -Wall -m64 -c -O2 -march=native -mavx2 -o mshabal256_avx2.o mshabal256_avx2.c
-
+		
 clean:
 		rm -f mshabal_sse4.o mshabal256_avx2.o shabal64.o helper64.o plot plotavx2 
