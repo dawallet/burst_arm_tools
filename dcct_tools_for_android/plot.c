@@ -156,8 +156,7 @@ void *work_i(void *x_void_ptr) {
             if(selecttype == 1) {
                 if (n + 4 < noncesperthread)
                 {
-                    mnonce(addr, i + n);
-                    n += 3;
+                   nonce(addr,i + n);
                 } else
                    nonce(addr,i + n);
 #ifdef AVX2
