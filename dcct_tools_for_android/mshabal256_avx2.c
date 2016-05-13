@@ -19,6 +19,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <immintrin.h>
+//#include <avx2intrin.h>
 
 #include "mshabal256.h"
 

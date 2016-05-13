@@ -34,7 +34,9 @@
 #include <sys/time.h>
 
 #include "shabal.h"
-
+#ifdef AVX2
+#include "mshabal256.h"
+#endif
 #include "mshabal.h"
 #include "helper.h"
 
@@ -66,6 +68,142 @@ char *outputdir = DEFAULTDIR;
   gendata[PLOT_SIZE + 8] = xv[7]; gendata[PLOT_SIZE + 9] = xv[6]; gendata[PLOT_SIZE + 10] = xv[5]; gendata[PLOT_SIZE + 11] = xv[4]; \
   gendata[PLOT_SIZE + 12] = xv[3]; gendata[PLOT_SIZE + 13] = xv[2]; gendata[PLOT_SIZE + 14] = xv[1]; gendata[PLOT_SIZE + 15] = xv[0]
 
+#ifdef AVX2
+int m256nonce(unsigned long long int addr, unsigned long long int nonce) {
+    char final1[32], final2[32], final3[32], final4[32], final5[32], final6[32], final7[32], final8[32];
+    char finalPosition1[32], finalPosition2[32], finalPosition3[32], finalPosition4[32], finalPosition5[32], finalPosition6[32], finalPosition7[32], finalPosition8[32];
+
+    char *gendata1 = (char*)malloc(16 + PLOT_SIZE); char *gendata2 = (char*)malloc(16 + PLOT_SIZE); char *gendata3 = (char*)malloc(16 + PLOT_SIZE); char *gendata4 = (char*)malloc(16 + PLOT_SIZE);
+    char *gendata5 = (char*)malloc(16 + PLOT_SIZE); char *gendata6 = (char*)malloc(16 + PLOT_SIZE); char *gendata7 = (char*)malloc(16 + PLOT_SIZE); char *gendata8 = (char*)malloc(16 + PLOT_SIZE);
+
+    char *xv = (char*)&addr;
+
+    gendata1[PLOT_SIZE] = xv[7]; gendata1[PLOT_SIZE + 1] = xv[6]; gendata1[PLOT_SIZE + 2] = xv[5]; gendata1[PLOT_SIZE + 3] = xv[4];
+    gendata1[PLOT_SIZE + 4] = xv[3]; gendata1[PLOT_SIZE + 5] = xv[2]; gendata1[PLOT_SIZE + 6] = xv[1]; gendata1[PLOT_SIZE + 7] = xv[0];
+
+    for (int i = PLOT_SIZE; i <= PLOT_SIZE + 7; ++i) {
+      gendata2[i] = gendata1[i]; gendata3[i] = gendata1[i]; gendata4[i] = gendata1[i]; gendata5[i] = gendata1[i]; gendata6[i] = gendata1[i]; gendata7[i] = gendata1[i]; gendata8[i] = gendata1[i];
+    }
+
+    unsigned long long int nonce2 = nonce + 1;
+    unsigned long long int nonce3 = nonce + 2;
+    unsigned long long int nonce4 = nonce + 3;
+    unsigned long long int nonce5 = nonce + 4;
+    unsigned long long int nonce6 = nonce + 5;
+    unsigned long long int nonce7 = nonce + 6;
+    unsigned long long int nonce8 = nonce + 7;
+
+    SET_NONCE(gendata1, nonce);
+    SET_NONCE(gendata2, nonce2);
+    SET_NONCE(gendata3, nonce3);
+    SET_NONCE(gendata4, nonce4);
+    SET_NONCE(gendata5, nonce5);
+    SET_NONCE(gendata6, nonce6);
+    SET_NONCE(gendata7, nonce7);
+    SET_NONCE(gendata8, nonce8);
+
+    mshabal256_context x;
+    int i, len;
+    for (i = PLOT_SIZE; i > 0; i -= HASH_SIZE) {
+      mshabal256_init(&x, 256);
+
+      len = PLOT_SIZE + 16 - i;
+      if (len > HASH_CAP)
+        len = HASH_CAP;
+
+        mshabal256(&x, &gendata1[i], &gendata2[i], &gendata3[i], &gendata4[i], &gendata5[i], &gendata6[i], &gendata7[i], &gendata8[i], len);
+        mshabal256_close(&x, 0, 0, 0, 0, 0, 0, 0, 0, 0, &gendata1[i - HASH_SIZE], &gendata2[i - HASH_SIZE], &gendata3[i - HASH_SIZE], &gendata4[i - HASH_SIZE],
+  						&gendata5[i - HASH_SIZE], &gendata6[i - HASH_SIZE], &gendata7[i - HASH_SIZE], &gendata8[i - HASH_SIZE]
+	);
+    }
+
+
+    mshabal256_init(&x, 256);
+    mshabal256(&x, gendata1, gendata2, gendata3, gendata4, gendata5, gendata6, gendata7, gendata8, 16 + PLOT_SIZE);
+    mshabal256_close(&x, 0, 0, 0, 0, 0, 0, 0, 0, 0, final1, final2, final3, final4, final5, final6, final7, final8);
+
+    // XOR with final
+    unsigned long long *start1 = (unsigned long long*)gendata1;
+    unsigned long long *start2 = (unsigned long long*)gendata2;
+    unsigned long long *start3 = (unsigned long long*)gendata3;
+    unsigned long long *start4 = (unsigned long long*)gendata4;
+    unsigned long long *start5 = (unsigned long long*)gendata5;
+    unsigned long long *start6 = (unsigned long long*)gendata6;
+    unsigned long long *start7 = (unsigned long long*)gendata7;
+    unsigned long long *start8 = (unsigned long long*)gendata8;
+    unsigned long long *fint1 = (unsigned long long*)&final1;
+    unsigned long long *fint2 = (unsigned long long*)&final2;
+    unsigned long long *fint3 = (unsigned long long*)&final3;
+    unsigned long long *fint4 = (unsigned long long*)&final4;
+    unsigned long long *fint5 = (unsigned long long*)&final5;
+    unsigned long long *fint6 = (unsigned long long*)&final6;
+    unsigned long long *fint7 = (unsigned long long*)&final7;
+    unsigned long long *fint8 = (unsigned long long*)&final8;
+    // Start XOR from scoop 0 on, in 32 Byte steps:
+    for(i = 0; i < PLOT_SIZE; i += 32) {
+                *start1 ^= fint1[0]; *start2 ^= fint2[0]; *start3 ^= fint3[0]; *start4 ^= fint4[0]; *start5 ^= fint5[0]; *start6 ^= fint6[0]; *start7 ^= fint7[0]; *start8 ^= fint8[0];
+		start1++; start2++; start3++; start4++; start5++; start6++; start7++; start8++;
+                *start1 ^= fint1[1]; *start2 ^= fint2[1]; *start3 ^= fint3[1]; *start4 ^= fint4[1]; *start5 ^= fint5[1]; *start6 ^= fint6[1]; *start7 ^= fint7[1]; *start8 ^= fint8[1];
+		start1++; start2++; start3++; start4++; start5++; start6++; start7++; start8++;
+                *start1 ^= fint1[2]; *start2 ^= fint2[2]; *start3 ^= fint3[2]; *start4 ^= fint4[2]; *start5 ^= fint5[2]; *start6 ^= fint6[2]; *start7 ^= fint7[2]; *start8 ^= fint8[2];
+		start1++; start2++; start3++; start4++; start5++; start6++; start7++; start8++;
+                *start1 ^= fint1[3]; *start2 ^= fint2[3]; *start3 ^= fint3[3]; *start4 ^= fint4[3]; *start5 ^= fint5[3]; *start6 ^= fint6[3]; *start7 ^= fint7[3]; *start8 ^= fint8[3];
+		start1++; start2++; start3++; start4++; start5++; start6++; start7++; start8++;
+
+		// Get position of scoops to mix in:
+		int position1, position2, position3, position4, position5, position6, position7, position8;
+		if(i == 0) {
+			position1 = position2 = position3 = position4 = position5 = position6 = position7 = position8 = 0;
+		} else {
+			mshabal256_init(&x, 256);
+			mshabal256(&x, final1, final2, final3, final4, final5, final6, final7, final8, 32);
+			mshabal256(&x, &gendata1[i], &gendata2[i], &gendata3[i], &gendata4[i], &gendata5[i], &gendata6[i], &gendata7[i], &gendata8[i], 32);
+			mshabal256_close(&x, 0, 0, 0, 0, 0, 0, 0, 0, 0, finalPosition1, finalPosition2, finalPosition3, finalPosition4, finalPosition5, finalPosition6, finalPosition7, finalPosition8);
+
+			position1 = ((unsigned char)finalPosition1[0] + 256 * (unsigned char)finalPosition1[1] + 256 * 256 * (unsigned char)finalPosition1[2]) % (i / 32); 
+			position2 = ((unsigned char)finalPosition2[0] + 256 * (unsigned char)finalPosition2[1] + 256 * 256 * (unsigned char)finalPosition2[2]) % (i / 32); 
+			position3 = ((unsigned char)finalPosition3[0] + 256 * (unsigned char)finalPosition3[1] + 256 * 256 * (unsigned char)finalPosition3[2]) % (i / 32); 
+			position4 = ((unsigned char)finalPosition4[0] + 256 * (unsigned char)finalPosition4[1] + 256 * 256 * (unsigned char)finalPosition4[2]) % (i / 32); 
+			position5 = ((unsigned char)finalPosition5[0] + 256 * (unsigned char)finalPosition5[1] + 256 * 256 * (unsigned char)finalPosition5[2]) % (i / 32); 
+			position6 = ((unsigned char)finalPosition6[0] + 256 * (unsigned char)finalPosition6[1] + 256 * 256 * (unsigned char)finalPosition6[2]) % (i / 32); 
+			position7 = ((unsigned char)finalPosition7[0] + 256 * (unsigned char)finalPosition7[1] + 256 * 256 * (unsigned char)finalPosition7[2]) % (i / 32); 
+			position8 = ((unsigned char)finalPosition8[0] + 256 * (unsigned char)finalPosition8[1] + 256 * 256 * (unsigned char)finalPosition8[2]) % (i / 32); 
+		}
+
+		// Create new final hash:
+		mshabal256_init(&x, 256);
+                mshabal256(&x, final1, final2, final3, final4, final5, final6, final7, final8, 32);
+                mshabal256(&x, &gendata1[position1 * 32], &gendata2[position2 * 32], &gendata3[position3 * 32], &gendata4[position4 * 32], &gendata5[position5 * 32], &gendata6[position6 * 32], &gendata7[position7 * 32], &gendata8[position8 * 32], 32);
+                mshabal256_close(&x, 0, 0, 0, 0, 0, 0, 0, 0, 0, final1, final2, final3, final4, final5, final6, final7, final8);
+    }
+
+        // Get offset inside block:
+        unsigned long long noncePosition1 =  nonce      % staggersize;
+        unsigned long long noncePosition2 = (nonce + 1) % staggersize;
+        unsigned long long noncePosition3 = (nonce + 2) % staggersize;
+        unsigned long long noncePosition4 = (nonce + 3) % staggersize;
+        unsigned long long noncePosition5 = (nonce + 4) % staggersize;
+        unsigned long long noncePosition6 = (nonce + 5) % staggersize;
+        unsigned long long noncePosition7 = (nonce + 6) % staggersize;
+        unsigned long long noncePosition8 = (nonce + 7) % staggersize;
+        // Sort them using new distribution scheme:
+        for(i = 0; i < SCOOPS; i++) {
+                memcpy( &cache[((i + SCOOPS - noncePosition1) % SCOOPS) * staggersize * 16 + (noncePosition1) * 16], &gendata1[i * 16], 16);
+                memcpy( &cache[((i + SCOOPS - noncePosition2) % SCOOPS) * staggersize * 16 + (noncePosition2) * 16], &gendata2[i * 16], 16);
+                memcpy( &cache[((i + SCOOPS - noncePosition3) % SCOOPS) * staggersize * 16 + (noncePosition3) * 16], &gendata3[i * 16], 16);
+                memcpy( &cache[((i + SCOOPS - noncePosition4) % SCOOPS) * staggersize * 16 + (noncePosition4) * 16], &gendata4[i * 16], 16);
+                memcpy( &cache[((i + SCOOPS - noncePosition5) % SCOOPS) * staggersize * 16 + (noncePosition5) * 16], &gendata5[i * 16], 16);
+                memcpy( &cache[((i + SCOOPS - noncePosition6) % SCOOPS) * staggersize * 16 + (noncePosition6) * 16], &gendata6[i * 16], 16);
+                memcpy( &cache[((i + SCOOPS - noncePosition7) % SCOOPS) * staggersize * 16 + (noncePosition7) * 16], &gendata7[i * 16], 16);
+                memcpy( &cache[((i + SCOOPS - noncePosition8) % SCOOPS) * staggersize * 16 + (noncePosition8) * 16], &gendata8[i * 16], 16);
+        }
+
+	free(gendata8); free(gendata7); free(gendata6); free(gendata5); free(gendata4); free(gendata3); free(gendata2); free(gendata1);
+
+
+    return 0;
+}
+#endif
 
 int mnonce(unsigned long long int addr, unsigned long long int nonce) {
     char final1[32], final2[32], final3[32], final4[32];
@@ -97,6 +235,20 @@ int mnonce(unsigned long long int addr, unsigned long long int nonce) {
     mshabal_context x;
     int i, len;
 
+    for (i = PLOT_SIZE; i > 0; i -= HASH_SIZE) {
+      sse4_mshabal_init(&x, 256);
+
+      len = PLOT_SIZE + 16 - i;
+      if (len > HASH_CAP)
+        len = HASH_CAP;
+
+      sse4_mshabal(&x, &gendata1[i], &gendata2[i], &gendata3[i], &gendata4[i], len);
+      sse4_mshabal_close(&x, 0, 0, 0, 0, 0, &gendata1[i - HASH_SIZE], &gendata2[i - HASH_SIZE], &gendata3[i - HASH_SIZE], &gendata4[i - HASH_SIZE]);
+    }
+
+    sse4_mshabal_init(&x, 256);
+    sse4_mshabal(&x, gendata1, gendata2, gendata3, gendata4, 16 + PLOT_SIZE);
+    sse4_mshabal_close(&x, 0, 0, 0, 0, 0, final1, final2, final3, final4);
 
 
     // XOR with final
@@ -123,7 +275,26 @@ int mnonce(unsigned long long int addr, unsigned long long int nonce) {
 
 	 // Get position of scoops to mix in:
 	 int position1, position2, position3, position4;
-	
+	 if(i == 0) {
+	 	position1 = position2 = position3 = position4 = 0;
+	 } else {
+		sse4_mshabal_init(&x, 256);
+		sse4_mshabal(&x, final1, final2, final3, final4, 32);
+		sse4_mshabal(&x, &gendata1[i], &gendata2[i], &gendata3[i], &gendata4[i], 32);
+		sse4_mshabal_close(&x, 0, 0, 0, 0, 0, finalPosition1, finalPosition2, finalPosition3, finalPosition4);
+
+		position1 = ((unsigned char)finalPosition1[0] + 256 * (unsigned char)finalPosition1[1] + 256 * 256 * (unsigned char)finalPosition1[2]) % (i / 32); 
+		position2 = ((unsigned char)finalPosition2[0] + 256 * (unsigned char)finalPosition2[1] + 256 * 256 * (unsigned char)finalPosition2[2]) % (i / 32); 
+		position3 = ((unsigned char)finalPosition3[0] + 256 * (unsigned char)finalPosition3[1] + 256 * 256 * (unsigned char)finalPosition3[2]) % (i / 32); 
+		position4 = ((unsigned char)finalPosition4[0] + 256 * (unsigned char)finalPosition4[1] + 256 * 256 * (unsigned char)finalPosition4[2]) % (i / 32); 
+	 }
+
+	 // Create new final hash:
+	 sse4_mshabal_init(&x, 256);
+	 sse4_mshabal(&x, final1, final2, final3, final4, 32);
+	 sse4_mshabal(&x, &gendata1[position1 * 32], &gendata2[position2 * 32], &gendata3[position3 * 32], &gendata4[position4 * 32], 32);
+	 sse4_mshabal_close(&x, 0, 0, 0, 0, 0, final1, final2, final3, final4);
+    }
 
     // Get offset inside block:
 	unsigned long long noncePosition1 = nonce       % staggersize;
@@ -261,8 +432,11 @@ unsigned long long getMS() {
 void usage(char **argv) {
 	printf("Usage: %s -k KEY [ -x CORE ] [-d DIRECTORY] [-s STARTBLOCK] [-n SIZE] [-m MEMORY] [-t THREADS]\n", argv[0]);
         printf("   CORE:\n");
-
-
+        printf("     0 - default core\n");
+        printf("     1 - SSE2 core\n");
+#ifdef AVX2
+        printf("     2 - AVX2 core\n");
+#endif
 	exit(-1);
 }
 
@@ -392,7 +566,9 @@ int main(int argc, char **argv) {
         }
 
         if(selecttype == 1) printf("Using SSE2 core.\n");
-
+#ifdef AVX2
+        else if(selecttype == 2) printf("Using AVX2 core.\n");
+#endif
         else {
 		printf("Using original algorithm.\n");
 		selecttype=0;
@@ -423,15 +599,15 @@ int main(int argc, char **argv) {
 			exit(-1);
 		}
 	}
-
+	
+	// Autodetect stagger size
+	if(staggersize == 0) // use 80% of memory
+		staggersize = (freemem() * 0.8) / PLOT_SIZE;
+	
 	// More memory than actual nonces? Reduce memory:
 	if(staggersize > nonces) {
 		staggersize = nonces;
 	}
-
-	// Autodetect stagger size
-	if(staggersize == 0) // use 80% of memory
-		staggersize = (freemem() * 0.8) / PLOT_SIZE;
 
 	// Is asyncmode enabled? Only half the memory is available
 	if(asyncmode == 1) 

@@ -111,7 +111,7 @@ unsigned long long freemem() {
 	GlobalMemoryStatusEx(&status);
 	return status.ullTotalPhys;
 #else
-	long pages = sysconf(_SC_PHYS_PAGES);
+	long pages = sysconf(_SC_AVPHYS_PAGES);
 	long page_size = sysconf(_SC_PAGE_SIZE);
 	return (unsigned long long)pages * page_size;
 #endif
