@@ -34,9 +34,7 @@
 #include <sys/time.h>
 
 #include "shabal.h"
-#ifdef AVX2
-#include "mshabal256.h"
-#endif
+
 #include "mshabal.h"
 #include "helper.h"
 
@@ -170,10 +168,7 @@ void usage(char **argv) {
 	printf("Usage: %s -k KEY [ -x CORE ] [-d DIRECTORY] [-s STARTBLOCK] [-n SIZE] [-m MEMORY] [-t THREADS]\n", argv[0]);
         printf("   CORE:\n");
         printf("     0 - default core\n");
-        printf("     1 - SSE2 core\n");
-#ifdef AVX2
-        printf("     2 - AVX2 core\n");
-#endif
+
 	exit(-1);
 }
 
@@ -302,14 +297,11 @@ int main(int argc, char **argv) {
 		}
         }
 
-        if(selecttype == 1) printf("Using SSE2 core.\n");
-#ifdef AVX2
-        else if(selecttype == 2) printf("Using AVX2 core.\n");
-#endif
-        else {
+
+    
 		printf("Using original algorithm.\n");
 		selecttype=0;
-	}
+	
 
 	if(addr == 0)
 		usage(argv);
