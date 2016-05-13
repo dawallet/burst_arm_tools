@@ -5,9 +5,6 @@ all:		plot32 plot plotavx2
 plot32:	plot.c shabal32.o helper32.o
 		gcc -Wall -O2 -o plot32 plot.c shabal32.o helper32.o
 
-plotavx2:	plot.c shabal64.o helper64.o mshabal_sse4.o mshabal256_avx2.o 
-		gcc -Wall -m64 -O2 -o plotavx2 plot.c shabal64.o helper64.o mshabal_sse4.o mshabal256_avx2.o -march=native -lpthread -std=gnu99 -DAVX2
-
 helper32.o:	helper.c
 		gcc -Wall -c -O2 -o helper32.o helper.c	
 
