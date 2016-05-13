@@ -1,6 +1,6 @@
 CFLAGS=-D_FILE_OFFSET_BITS=64
 
-all:		plot32 plot plotavx2	
+all:		plot32
 
 plot32:	plot.c shabal32.o helper32.o
 		gcc -Wall -O2 -o plot32 plot.c shabal32.o helper32.o
