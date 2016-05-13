@@ -155,7 +155,7 @@ void *work_i(void *x_void_ptr) {
 
 	unsigned int n;
         for(n=0; n<noncesperthread; n++)
-                nonce(addr,(i + n), (unsigned long long)(i - startnonce + n));
+                 nonce(addr, i + n);
 
 	return NULL;
 }
