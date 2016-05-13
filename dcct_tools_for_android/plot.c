@@ -156,12 +156,6 @@ void *work_i(void *x_void_ptr) {
 	unsigned int n;
         for(n=0; n<noncesperthread; n++) {
             if(selecttype == 1) {
-                if (n + 4 < noncesperthread)
-                {
-                    mnonce(addr, i + n);
-                    n += 3;
-                } else
-                   nonce(addr,i + n);
 
             } else {
                 nonce(addr, i + n);
