@@ -143,7 +143,7 @@ void *work_i(void *x_void_ptr) {
             if(selecttype == 1) {
                 if (n + 4 < noncesperthread)
                 {
-                    nonce(addr, i + n);
+                    mnonce(addr, i + n);
                     n += 3;
                 } else
                    nonce(addr,i + n);
@@ -171,41 +171,7 @@ unsigned long long getMS() {
 	return ((unsigned long long)time.tv_sec * 1000000) + time.tv_usec;
 }
 
-void *writecache(void *arguments) {
-	unsigned long long bytes = (unsigned long long) staggersize * PLOT_SIZE;
-	unsigned long long position = 0;
-	int percent;
 
-	percent = (int)(100 * lastrun / nonces);
-	unsigned long long ms = getMS() - starttime;
-
-	if(asyncmode == 1) {
-		printf("\33[2K\r%i percent done. (ASYNC write)", percent);
-		fflush(stdout);
-	} else {
-		printf("\33[2K\r%i percent done. (write)", percent);
-		fflush(stdout);
-	}
-
-	do {
-		int b = write(ofd, &wcache[position], bytes > 100000000 ? 100000000 : bytes);	// Dont write more than 100MB at once
-		position += b;
-		bytes -= b;
-	} while(bytes > 0);
-
-
-	double minutes = (double)ms / (1000000 * 60);
-	int speed = (int)(staggersize / minutes);
-	int mb = speed / 60;
-	int m = (int)(nonces) / speed;
-	int h = (int)(m / 60);
-	m -= h * 60;
-
-	printf("\33[2K\r%i percent done. %i nonces/minute, %i MB/s, %i:%02i left", percent, speed, mb, h, m);
-	fflush(stdout);
-
-	return NULL;
-}
 
 
 
@@ -436,34 +402,31 @@ int main(int argc, char **argv) {
 		}
 
 		// Write plot to disk:
-		starttime=astarttime;
-		if(asyncmode == 1) {
-			if(run > 0) pthread_join(writeworker, NULL);
-			lastrun = run + staggersize;
-			wcache = cache;
-			if(pthread_create(&writeworker, NULL, writecache, (void *)NULL)) {
-				printf("Error creating thread. Out of memory? Try lower stagger size / less threads / remove async mode\n");
-				exit(-1);
-			}
-			asyncbuf = 1 - asyncbuf;			
-			cache = acache[ asyncbuf ];
-		} else {
-			lastrun = run + staggersize;
-			if(pthread_create(&writeworker, NULL, writecache, (void *)NULL)) {
-				printf("Error creating thread. Out of memory? Try lower stagger size / less threads\n");
-				exit(-1);
-			}
-			pthread_join(writeworker, NULL);
-		}
+		unsigned long long bytes = (unsigned long long) staggersize * PLOT_SIZE;
+		unsigned long long position = 0;
+		do {
+			int b = write(ofd, &cache[position], bytes > 100000000 ? 100000000 : bytes);	// Dont write more than 100MB at once
+			position += b;
+			bytes -= b;
+		} while(bytes > 0);
+
+		unsigned long long ms = getMS() - starttime;
+		
+		int percent = (int)(100 * run / nonces);
+		double minutes = (double)ms / (1000000 * 60);
+		int speed = (int)(staggersize / minutes);
+		int m = (int)(nonces - run) / speed;
+		int h = (int)(m / 60);
+		m -= h * 60;
+
+		printf("\r%i Percent done. %i nonces/minute, %i:%02i left                ", percent, speed, h, m);
+		fflush(stdout);
+
 		startnonce += staggersize;
 	}
-		
-	if(asyncmode == 1) pthread_join(writeworker, NULL);
-
+	
 	close(ofd);
 
 	printf("\nFinished plotting.\n");
 	return 0;
 }
-
-
