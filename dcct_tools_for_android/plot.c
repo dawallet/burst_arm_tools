@@ -171,6 +171,44 @@ unsigned long long getMS() {
 	return ((unsigned long long)time.tv_sec * 1000000) + time.tv_usec;
 }
 
+void *writecache(void *arguments) {
+	unsigned long long bytes = (unsigned long long) staggersize * PLOT_SIZE;
+	unsigned long long position = 0;
+	int percent;
+
+	percent = (int)(100 * lastrun / nonces);
+	unsigned long long ms = getMS() - starttime;
+
+	if(asyncmode == 1) {
+		printf("\33[2K\r%i percent done. (ASYNC write)", percent);
+		fflush(stdout);
+	} else {
+		printf("\33[2K\r%i percent done. (write)", percent);
+		fflush(stdout);
+	}
+
+	do {
+		int b = write(ofd, &wcache[position], bytes > 100000000 ? 100000000 : bytes);	// Dont write more than 100MB at once
+		position += b;
+		bytes -= b;
+	} while(bytes > 0);
+
+
+	double minutes = (double)ms / (1000000 * 60);
+	int speed = (int)(staggersize / minutes);
+	int mb = speed / 60;
+	int m = (int)(nonces) / speed;
+	int h = (int)(m / 60);
+	m -= h * 60;
+
+	printf("\33[2K\r%i percent done. %i nonces/minute, %i MB/s, %i:%02i left", percent, speed, mb, h, m);
+	fflush(stdout);
+
+	return NULL;
+}
+
+
+
 void usage(char **argv) {
 	printf("Usage: %s -k KEY [-d DIRECTORY] [-s STARTNONCE] [-n NONCES] [-m STAGGERSIZE] [-t THREADS]\n", argv[0]);
 	exit(-1);
