@@ -1,15 +1,7 @@
 /*
-	Burstcoin plot generator V2
-	Creates version 2 plotfiles
+	V2 mod for ARM
+	A faster plot generator for burstcoin
 	Author: Markus Tervooren <info@bchain.info>
-	Burst: BURST-R5LP-KEL9-UYLG-GFG6T
-
-	Modified version originally written by Cerr Janror <cerr.janror@gmail.com> : https://github.com/BurstTools/BurstSoftware.git
-
-	Author: Mirkic7 <mirkic7@hotmail.com>
-	Burst: BURST-RQW7-3HNW-627D-3GAEV
-
-	Original author: Markus Tervooren <info@bchain.info>
 	Burst: BURST-R5LP-KEL9-UYLG-GFG6T
 
 	Implementation of Shabal is taken from:
@@ -34,10 +26,6 @@
 #include <sys/time.h>
 
 #include "shabal.h"
-#ifdef AVX2
-#include "mshabal256.h"
-#endif
-#include "mshabal.h"
 #include "helper.h"
 
 #define DEFAULTDIR	"plots/"
@@ -67,7 +55,6 @@ char *outputdir = DEFAULTDIR;
   xv = (char*)&nonce; \
   gendata[PLOT_SIZE + 8] = xv[7]; gendata[PLOT_SIZE + 9] = xv[6]; gendata[PLOT_SIZE + 10] = xv[5]; gendata[PLOT_SIZE + 11] = xv[4]; \
   gendata[PLOT_SIZE + 12] = xv[3]; gendata[PLOT_SIZE + 13] = xv[2]; gendata[PLOT_SIZE + 14] = xv[1]; gendata[PLOT_SIZE + 15] = xv[0]
-
 
 void nonce(unsigned long long int addr, unsigned long long int nonce) {
 	char final[32];
@@ -156,7 +143,8 @@ void *work_i(void *x_void_ptr) {
             if(selecttype == 1) {
                 if (n + 4 < noncesperthread)
                 {
-                   nonce(addr,i + n);
+                    mnonce(addr, i + n);
+                    n += 3;
                 } else
                    nonce(addr,i + n);
 #ifdef AVX2
@@ -184,50 +172,8 @@ unsigned long long getMS() {
 }
 
 void usage(char **argv) {
-	printf("Usage: %s -k KEY [ -x CORE ] [-d DIRECTORY] [-s STARTBLOCK] [-n SIZE] [-m MEMORY] [-t THREADS]\n", argv[0]);
-        printf("   CORE:\n");
-        printf("     0 - default core\n");
-        printf("     1 - SSE2 core\n");
-#ifdef AVX2
-        printf("     2 - AVX2 core\n");
-#endif
+	printf("Usage: %s -k KEY [-d DIRECTORY] [-s STARTNONCE] [-n NONCES] [-m STAGGERSIZE] [-t THREADS]\n", argv[0]);
 	exit(-1);
-}
-
-void *writecache(void *arguments) {
-	unsigned long long bytes = (unsigned long long) staggersize * PLOT_SIZE;
-	unsigned long long position = 0;
-	int percent;
-
-	percent = (int)(100 * lastrun / nonces);
-	unsigned long long ms = getMS() - starttime;
-
-	if(asyncmode == 1) {
-		printf("\33[2K\r%i percent done. (ASYNC write)", percent);
-		fflush(stdout);
-	} else {
-		printf("\33[2K\r%i percent done. (write)", percent);
-		fflush(stdout);
-	}
-
-	do {
-		int b = write(ofd, &wcache[position], bytes > 100000000 ? 100000000 : bytes);	// Dont write more than 100MB at once
-		position += b;
-		bytes -= b;
-	} while(bytes > 0);
-
-
-	double minutes = (double)ms / (1000000 * 60);
-	int speed = (int)(staggersize / minutes);
-	int mb = speed / 60;
-	int m = (int)(nonces) / speed;
-	int h = (int)(m / 60);
-	m -= h * 60;
-
-	printf("\33[2K\r%i percent done. %i nonces/minute, %i MB/s, %i:%02i left", percent, speed, mb, h, m);
-	fflush(stdout);
-
-	return NULL;
 }
 
 int main(int argc, char **argv) {
@@ -318,19 +264,9 @@ int main(int argc, char **argv) {
 			}			
 		}
         }
-
-        if(selecttype == 1) printf("Using SSE2 core.\n");
-#ifdef AVX2
-        else if(selecttype == 2) printf("Using AVX2 core.\n");
-#endif
-        else {
-		printf("Using original algorithm.\n");
-		selecttype=0;
-	}
-
+	
 	if(addr == 0)
 		usage(argv);
-
 
 	// Autodetect threads
 	if(threads == 0)
@@ -354,10 +290,6 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	// More memory than actual nonces? Reduce memory:
-	if(staggersize > nonces) {
-		staggersize = nonces;
-	}
 
 	// Autodetect stagger size
 	if(staggersize == 0) // use 80% of memory
